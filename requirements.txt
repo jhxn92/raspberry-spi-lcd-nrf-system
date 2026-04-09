@@ -1,0 +1,5 @@
+adafruit-blinka
+adafruit-circuitpython-rgb-display
+Pillow
+pyRF24
+evdev
