@@ -74,7 +74,7 @@ Este projeto utiliza um Raspberry Pi 3 Model B para criar um sistema embarcado c
 ## Estrutura do Projeto
 
 ```text
-Projetos/
+raspberry-spi-lcd-nrf-system/
 ├── main.py
 ├── ui.py
 ├── screens.py
