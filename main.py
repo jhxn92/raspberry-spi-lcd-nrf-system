@@ -342,7 +342,8 @@ try:
 
         render()
         action = gamepad.poll_action()
-
+        print("ACAO:", action)
+        
         if action is None:
             time.sleep(0.03)
             continue
