@@ -10,11 +10,14 @@ from ui import create_canvas, create_offscreen, WIDTH, HEIGHT
 from nrf_module import init_nrf, send_message, receive_message
 from gamepad import GamepadReader
 
+# =========================
+# LCD ST7735
+# =========================
 spi = busio.SPI(clock=board.SCLK, MOSI=board.MOSI)
 
-cs = digitalio.DigitalInOut(board.CE0)
-dc = digitalio.DigitalInOut(board.D24)
-rst = digitalio.DigitalInOut(board.D25)
+cs = digitalio.DigitalInOut(board.CE0)   # GPIO8
+dc = digitalio.DigitalInOut(board.D24)   # GPIO24
+rst = digitalio.DigitalInOut(board.D25)  # GPIO25
 
 disp = st7735.ST7735R(
     spi,
@@ -26,6 +29,9 @@ disp = st7735.ST7735R(
     rotation=90,
 )
 
+# =========================
+# Estado global
+# =========================
 radio_ok = init_nrf()
 gamepad = GamepadReader()
 gamepad_name = gamepad.name
@@ -48,36 +54,21 @@ menu_indices = {
     "system_menu": 0,
 }
 
-menu_highlight_y = {
-    "home": 30,
-    "bluetooth_menu": 30,
-    "nrf_menu": 30,
-    "lcd_menu": 30,
-    "system_menu": 30,
-}
-
 MENU_START_Y = 30
 MENU_STEP = 22
 
-
-def push_screen(screen_name: str):
-    global current_screen
-    screen_stack.append(current_screen)
-    old_screen = current_screen
-    current_screen = screen_name
-    animate_screen_transition(old_screen, current_screen, direction="left")
-
-
-def pop_screen():
-    global current_screen
-    old_screen = current_screen
-    if screen_stack:
-        current_screen = screen_stack.pop()
-    else:
-        current_screen = "home"
-    animate_screen_transition(old_screen, current_screen, direction="right")
+menu_highlight_y = {
+    "home": MENU_START_Y,
+    "bluetooth_menu": MENU_START_Y,
+    "nrf_menu": MENU_START_Y,
+    "lcd_menu": MENU_START_Y,
+    "system_menu": MENU_START_Y,
+}
 
 
+# =========================
+# Helpers de menu/navegação
+# =========================
 def menu_length(screen_name: str) -> int:
     if screen_name == "home":
         return len(screens.HOME_MENU)
@@ -97,6 +88,26 @@ def target_highlight_y(screen_name: str) -> int:
     return MENU_START_Y + idx * MENU_STEP
 
 
+def push_screen(screen_name: str):
+    global current_screen
+    old_screen = current_screen
+    screen_stack.append(current_screen)
+    current_screen = screen_name
+    animate_screen_transition(old_screen, current_screen, direction="left")
+    render()
+
+
+def pop_screen():
+    global current_screen
+    old_screen = current_screen
+    if screen_stack:
+        current_screen = screen_stack.pop()
+    else:
+        current_screen = "home"
+    animate_screen_transition(old_screen, current_screen, direction="right")
+    render()
+
+
 def move_menu(direction: str):
     if current_screen not in menu_indices:
         return
@@ -111,29 +122,16 @@ def move_menu(direction: str):
         menu_indices[current_screen] = (menu_indices[current_screen] + 1) % total
 
 
-def animate_menu_highlight():
-    if current_screen not in menu_highlight_y:
-        return
-
-    target = target_highlight_y(current_screen)
-    current = menu_highlight_y[current_screen]
-
-    if current == target:
-        return
-
-    steps = 5
-    for i in range(1, steps + 1):
-        interp = current + (target - current) * i / steps
-        menu_highlight_y[current_screen] = interp
-        render()
-        time.sleep(0.01)
-
-    menu_highlight_y[current_screen] = target
-
-
+# =========================
+# Render das telas
+# =========================
 def draw_screen(draw, screen_name: str):
     if screen_name == "home":
-        screens.home(draw, menu_indices["home"], highlight_y=menu_highlight_y["home"])
+        screens.home(
+            draw,
+            menu_indices["home"],
+            highlight_y=menu_highlight_y["home"],
+        )
 
     elif screen_name == "bluetooth_menu":
         screens.bluetooth_menu(
@@ -194,7 +192,11 @@ def draw_screen(draw, screen_name: str):
         screens.system_controller(draw, gamepad_name)
 
     else:
-        screens.home(draw, menu_indices["home"], highlight_y=menu_highlight_y["home"])
+        screens.home(
+            draw,
+            menu_indices["home"],
+            highlight_y=menu_highlight_y["home"],
+        )
 
 
 def render():
@@ -209,15 +211,42 @@ def render_to_image(screen_name: str):
     return image
 
 
-def animate_screen_transition(old_screen: str, new_screen: str, direction="left"):
+# =========================
+# Animações
+# =========================
+def animate_menu_highlight():
+    if current_screen not in menu_highlight_y:
+        render()
+        return
+
+    start_y = menu_highlight_y[current_screen]
+    end_y = target_highlight_y(current_screen)
+
+    if start_y == end_y:
+        render()
+        return
+
+    steps = 6
+    for i in range(1, steps + 1):
+        progress = i / steps
+        current_y = start_y + (end_y - start_y) * progress
+        menu_highlight_y[current_screen] = current_y
+        render()
+        time.sleep(0.01)
+
+    menu_highlight_y[current_screen] = end_y
+    render()
+
+
+def animate_screen_transition(old_screen: str, new_screen: str, direction: str = "left"):
     old_img = render_to_image(old_screen)
     new_img = render_to_image(new_screen)
 
     steps = 8
 
     for i in range(steps + 1):
-        frame = Image.new("RGB", (WIDTH, HEIGHT), (8, 8, 10))
         progress = i / steps
+        frame = Image.new("RGB", (WIDTH, HEIGHT), (8, 8, 10))
 
         if direction == "left":
             old_x = int(-WIDTH * progress)
@@ -232,13 +261,19 @@ def animate_screen_transition(old_screen: str, new_screen: str, direction="left"
         time.sleep(0.012)
 
 
+# =========================
+# Ações do sistema
+# =========================
 def do_nrf_send():
     global send_status, current_screen
+
     send_status = "Enviando..."
     current_screen = "nrf_send"
     render()
+
     ok = send_message("Ola do Raspberry!")
     send_status = "Enviado!" if ok else "Falha no envio"
+    render()
 
 
 def update_receive():
@@ -248,6 +283,9 @@ def update_receive():
         last_msg = msg
 
 
+# =========================
+# Manipulação de eventos
+# =========================
 def handle_select():
     global current_screen, lcd_test_phase
 
@@ -261,8 +299,9 @@ def handle_select():
             push_screen("lcd_menu")
         elif idx == 3:
             push_screen("system_menu")
+        return
 
-    elif current_screen == "bluetooth_menu":
+    if current_screen == "bluetooth_menu":
         idx = menu_indices["bluetooth_menu"]
         if idx == 0:
             push_screen("bluetooth_status")
@@ -270,8 +309,9 @@ def handle_select():
             push_screen("bluetooth_devices")
         elif idx == 2:
             pop_screen()
+        return
 
-    elif current_screen == "nrf_menu":
+    if current_screen == "nrf_menu":
         idx = menu_indices["nrf_menu"]
         if idx == 0:
             push_screen("nrf_status")
@@ -281,8 +321,9 @@ def handle_select():
             push_screen("nrf_receive")
         elif idx == 3:
             pop_screen()
+        return
 
-    elif current_screen == "lcd_menu":
+    if current_screen == "lcd_menu":
         idx = menu_indices["lcd_menu"]
         if idx == 0:
             push_screen("lcd_info")
@@ -290,8 +331,9 @@ def handle_select():
             push_screen("lcd_test")
         elif idx == 2:
             pop_screen()
+        return
 
-    elif current_screen == "system_menu":
+    if current_screen == "system_menu":
         idx = menu_indices["system_menu"]
         if idx == 0:
             push_screen("system_summary")
@@ -299,15 +341,27 @@ def handle_select():
             push_screen("system_controller")
         elif idx == 2:
             pop_screen()
+        return
 
-    elif current_screen == "nrf_send":
+    if current_screen == "nrf_send":
         do_nrf_send()
+        return
 
-    elif current_screen == "nrf_receive":
+    if current_screen == "nrf_receive":
         update_receive()
+        render()
+        return
 
-    elif current_screen == "lcd_test":
+    if current_screen == "lcd_test":
         lcd_test_phase = (lcd_test_phase + 1) % 4
+        render()
+        return
+
+
+def handle_back():
+    if current_screen == "home":
+        return
+    pop_screen()
 
 
 def handle_send_action():
@@ -317,36 +371,41 @@ def handle_send_action():
 
 def handle_receive_action():
     global current_screen
+
     if current_screen in ("home", "nrf_menu"):
-        current_screen = "nrf_receive"
-        render()
-    elif current_screen == "nrf_receive":
-        update_receive()
-
-
-def handle_back():
-    if current_screen == "home":
+        push_screen("nrf_receive")
         return
-    pop_screen()
+
+    if current_screen == "nrf_receive":
+        update_receive()
+        render()
 
 
+# =========================
+# Inicialização
+# =========================
 print("Sistema iniciando...")
 print(f"Controle detectado: {gamepad_name}")
 print(f"Bluetooth: {bt_status}")
 print(f"NRF inicializado: {radio_ok}")
 
+render()
+
+# =========================
+# Loop principal
+# =========================
 try:
     while True:
         if current_screen == "nrf_receive":
             update_receive()
 
-        render()
         action = gamepad.poll_action()
-        print("ACAO:", action)
-        
+
         if action is None:
             time.sleep(0.03)
             continue
+
+        print(f"ACAO: {action}")
 
         if action == "up":
             move_menu("up")
@@ -368,6 +427,7 @@ try:
         elif action == "receive":
             handle_receive_action()
 
+        render()
         time.sleep(0.03)
 
 except KeyboardInterrupt:
