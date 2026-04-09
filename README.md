@@ -100,7 +100,7 @@ Projetos/
 ```bash
 sudo apt update
 sudo apt install python3-venv python3-dev python3-libgpiod -y
-cd /home/balancerec/Projetos
+cd /home/balancerec/raspberry-spi-lcd-nrf-system
 python3 -m venv venv
 source venv/bin/activate
 ```
@@ -158,7 +158,7 @@ python3 gamepad.py --list
 ## Execução
 
 ```bash
-cd /home/balancerec/Projetos
+cd /home/balancerec/raspberry-spi-lcd-nrf-system
 source venv/bin/activate
 python3 main.py
 ```
