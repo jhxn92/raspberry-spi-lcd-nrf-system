@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PROJECT_DIR="/home/balancerec/Projetos"
+PROJECT_DIR="/home/balancerec/raspberry-spi-lcd-nrf-system"
 
 sudo apt update
 sudo apt install -y python3-venv python3-dev python3-libgpiod bluetooth bluez
