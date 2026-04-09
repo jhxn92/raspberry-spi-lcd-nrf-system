@@ -67,7 +67,8 @@ Este projeto utiliza um Raspberry Pi 3 Model B para criar um sistema embarcado c
 ## Diretório do Projeto
 
 ```bash
-/home/balancerec/Projetos
+/home/balancerec/raspberry-spi-lcd-nrf-system
+
 ```
 
 ## Estrutura do Projeto
