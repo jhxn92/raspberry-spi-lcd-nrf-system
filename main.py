@@ -9,11 +9,10 @@ from ui import create_canvas
 from nrf_module import init_nrf, send_message, receive_message
 from gamepad import GamepadReader
 
-# LCD ST7735
 spi = busio.SPI(clock=board.SCLK, MOSI=board.MOSI)
-cs = digitalio.DigitalInOut(board.CE0)   # GPIO8
-dc = digitalio.DigitalInOut(board.D24)   # GPIO24
-rst = digitalio.DigitalInOut(board.D25)  # GPIO25
+cs = digitalio.DigitalInOut(board.CE0)
+dc = digitalio.DigitalInOut(board.D24)
+rst = digitalio.DigitalInOut(board.D25)
 
 disp = st7735.ST7735R(
     spi,
@@ -34,7 +33,7 @@ gamepad = GamepadReader()
 gamepad_name = gamepad.name
 
 
-def render() -> None:
+def render():
     image, draw = create_canvas()
 
     if current_screen == "home":
