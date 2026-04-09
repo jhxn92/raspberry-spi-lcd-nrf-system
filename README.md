@@ -34,7 +34,7 @@ Este projeto utiliza um Raspberry Pi 3 Model B para criar um sistema embarcado c
 | LCD | Raspberry Pi | GPIO | Pino físico | Cor |
 |---|---|---:|---:|---|
 | GND | GND | - | 6 | Preto |
-| VCC | 3.3V | - | 1 | Vermelho
+| VCC | 3.3V | - | 1 | Vermelho |
 | SCL | SCK | GPIO11 | 23 | Amarelo |
 | SDA | MOSI | GPIO10 | 19 | Verde |
 | CS | CE0 | GPIO8 | 24 | Laranja |
