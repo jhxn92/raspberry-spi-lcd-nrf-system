@@ -9,10 +9,11 @@ from ui import create_canvas
 from nrf_module import init_nrf, send_message, receive_message
 from gamepad import GamepadReader
 
+# LCD ST7735
 spi = busio.SPI(clock=board.SCLK, MOSI=board.MOSI)
-cs = digitalio.DigitalInOut(board.CE0)
-dc = digitalio.DigitalInOut(board.D24)
-rst = digitalio.DigitalInOut(board.D25)
+cs = digitalio.DigitalInOut(board.CE0)   # GPIO8
+dc = digitalio.DigitalInOut(board.D24)   # GPIO24
+rst = digitalio.DigitalInOut(board.D25)  # GPIO25
 
 disp = st7735.ST7735R(
     spi,
@@ -32,8 +33,10 @@ radio_ok = init_nrf()
 gamepad = GamepadReader()
 gamepad_name = gamepad.name
 
-def render():
+
+def render() -> None:
     image, draw = create_canvas()
+
     if current_screen == "home":
         screens.home(draw, menu_index)
     elif current_screen == "send":
@@ -42,7 +45,9 @@ def render():
         screens.receive_screen(draw, last_msg)
     elif current_screen == "system":
         screens.system_screen(draw, radio_ok, gamepad_name)
+
     disp.image(image)
+
 
 while True:
     if current_screen == "receive":
